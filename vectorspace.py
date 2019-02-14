@@ -3,28 +3,106 @@ import nltk
 import matplotlib.pyplot as plt
 import json
 import warnings
+import numpy as np
+
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 
 
 def main():
-	train_revs = parse_files('yelp/train')
-	test_revs = parse_files('yelp/test')
+	#UNCOMMENT BELOW TO RUN THE PREPROCESSING
 
-	#Performs tokenization, normalization, stemming, and stopword removal on 'Content' and adds the result to a new key called 'clean' in the same data structure
-	preprocess(train_revs)
-	preprocess(test_revs)
+	# train_revs = parse_files('yelp/train')
+	# test_revs = parse_files('yelp/test')
 
-	print(train_revs[0])
+	# #Performs tokenization, normalization, stemming, and stopword removal on 'Content' and adds the result to a new key called 'clean' in the same data structure
+	# preprocess(train_revs)
+	# preprocess(test_revs)
 
-	#stores the processed reviews for convenience so I don't have to do it every time I run the program
-	write_files('trainfile', train_revs, 'testfile', test_revs)
+	# print(train_revs[0])
+
+	# #stores the processed reviews for convenience so I don't have to do it every time I run the program
+	# write_files('trainfile', train_revs, 'testfile', test_revs)
 
 	train_revs = parse_files('trainfile')
 	test_revs = parse_files('testfile')
 
+	zipfs_law(train_revs, test_revs)
 
-def zipfs_law(train, test):
-	freqs = 
+	zipfs_law(train_revs, test_revs, df=True)
+
+
+def zipfs_law(train, test, df=False):
+	freqs = {}
+
+	if not df:
+		for rev in train:
+			for token in rev['clean']:
+				if token in freqs:
+					freqs[token] += 1
+				else:
+					freqs[token] = 1
+		for rev in test:
+			for token in rev['clean']:
+				if token in freqs:
+					freqs[token] += 1
+				else:
+					freqs[token] = 1
+	else:
+		for rev in train:
+			minidict = {}
+			for token in rev['clean']:
+				if token in minidict:
+					minidict[token] += 1
+				else:
+					minidict[token] = 1
+			for key in minidict:
+				if key in freqs:
+					freqs[key] += 1
+				else:
+					freqs[key] = 1
+		for rev in test:
+			minidict = {}
+			for token in rev['clean']:
+				if token in minidict:
+					minidict[token] += 1
+				else:
+					minidict[token] = 1
+			for key in minidict:
+				if key in freqs:
+					freqs[key] += 1
+				else:
+					freqs[key] = 1
+
+	numtokens = len(freqs.keys())
+
+	x = np.linspace(1,numtokens, numtokens)
+	y = [k[1] for k in freqs.items()]
+	y.sort(reverse=True)
+
+
+	plt.scatter(x, y, s=3)
+	plt.yscale('log',basey=10)
+	plt.xscale('log',basex=10)
+
+	loga = np.log(x)
+	logb = np.log(y)
+	#plt.plot(loga,logb, '--r')
+
+	coefficients = np.polyfit(logb, loga, 1)
+	polynomial = np.poly1d(coefficients)
+	print(coefficients)
+
+	tau = coefficients[0]
+	k = coefficients[1]
+	
+	plt.plot(x, k*x**tau, '--r')
+
+	plt.ylim(1,100000)
+	plt.show()
+
+
+def construct_ngrams(reviews, n=2):
+	
 
 def preprocess(reviews):
 	punctuation = '. , < > / ? ; : \' " ] [ } { - _ = + ) ( \\ | ! @ # $ % ^ & * ` ~'.split()
