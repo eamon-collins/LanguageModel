@@ -8,33 +8,76 @@ import numpy as np
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 
 
+#things to come back to:
+#zipfs law graphs are weird with the line being way below the graph visually. intercept at like 11
+#atmospher unigram still getting through even though it's in stopwords
+
 def main():
 	#UNCOMMENT BELOW TO RUN THE PREPROCESSING
 
-	# train_revs = parse_files('yelp/train')
-	# test_revs = parse_files('yelp/test')
+	train_revs = parse_files('yelp/train')
+	test_revs = parse_files('yelp/test')
 
-	# #Performs tokenization, normalization, stemming, and stopword removal on 'Content' and adds the result to a new key called 'clean' in the same data structure
-	# preprocess(train_revs)
-	# preprocess(test_revs)
-
-	# print(train_revs[0])
-
-	# #stores the processed reviews for convenience so I don't have to do it every time I run the program
-	# write_files('trainfile', train_revs, 'testfile', test_revs)
-
-	train_revs = parse_files('trainfile')
-	test_revs = parse_files('testfile')
-
-	zipfs_law(train_revs, test_revs)
-
-	zipfs_law(train_revs, test_revs, df=True)
+	#Performs tokenization, normalization, stemming, and stopword removal on 'Content' and adds the result to a new key called 'clean' in the same data structure
+	preprocess(train_revs)
+	preprocess(test_revs)
 
 
+	#stores the processed reviews for convenience so I don't have to do it every time I run the program
+	write_files('trainfile', train_revs, 'testfile', test_revs)
+
+	# train_revs = parse_files('trainfile')
+	# test_revs = parse_files('testfile')
+
+	#zipfs_law(train_revs, test_revs)
+
+	#zipfs_law(train_revs, test_revs, df=True)
+
+	bigrams = construct_ngrams(train_revs)
+	finalngrams = []
+	sortedBigrams = sorted(bigrams, key=bigrams.get, reverse=True)
+	print(sortedBigrams[:100])
+	#sortedBigrams = sortedBigrams[101:]
+	for word in sortedBigrams:
+		if bigrams[word] >= 50:
+			finalngrams.append(word)
+
+	#dont uncomment this, just left it in to show that I did add 
+	# with open('stopwords', 'a') as file:
+	# 	for word in sortedBigrams[:100]:
+	# 		file.write(word+"\n")
+	#for k, v in bigrams.items():
+		
+	print(len(finalngrams))
+
+#returns a dictionary with 
 def construct_ngrams(reviews, n=2):
-	
+	freqs = {}
+	for rev in reviews:
+		minidict = {}
+		for token in rev['clean']:
+			if token in minidict:
+				minidict[token] += 1
+			else:
+				minidict[token] = 1
+		#bigrams
+		for i in range(len(rev['clean'])+1-n):
+			token = rev['clean'][i] + "-" + rev['clean'][i+1]
+			if token in minidict:
+				minidict[token] += 1
+			else:
+				minidict[token] = 1
 
-	
+		#collate them into the main dictionary
+		for key in minidict:
+			if key in freqs:
+				freqs[key] += 1
+			else:
+				freqs[key] = 1
+	return freqs
+
+
+
 
 def zipfs_law(train, test, df=False):
 	freqs = {}
@@ -163,13 +206,14 @@ def parse_files(filepath):
 	return reviews
 
 def get_stopwords():
+	stemmer = nltk.stem.snowball.EnglishStemmer()
 	stopwords = []
 	with open('stopwords', 'r') as stop:
 		for line in stop:
 			if line == "\n":
 				continue
 			else:
-				stopwords.append(line.strip())
+				stopwords.append(stemmer.stem(line.strip()))
 	return stopwords
 
 def write_files(trainpath, train, testpath, test):
