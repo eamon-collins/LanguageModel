@@ -31,6 +31,11 @@ def main():
 	zipfs_law(train_revs, test_revs, df=True)
 
 
+def construct_ngrams(reviews, n=2):
+	
+
+	
+
 def zipfs_law(train, test, df=False):
 	freqs = {}
 
@@ -101,8 +106,6 @@ def zipfs_law(train, test, df=False):
 	plt.show()
 
 
-def construct_ngrams(reviews, n=2):
-	
 
 def preprocess(reviews):
 	punctuation = '. , < > / ? ; : \' " ] [ } { - _ = + ) ( \\ | ! @ # $ % ^ & * ` ~'.split()
