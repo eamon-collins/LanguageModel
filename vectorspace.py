@@ -1,6 +1,6 @@
 import os
 import nltk
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import json
 import warnings
 import numpy as np
@@ -15,30 +15,31 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 def main():
 	#UNCOMMENT BELOW TO RUN THE PREPROCESSING
 
-	train_revs = parse_files('yelp/train')
-	test_revs = parse_files('yelp/test')
+	# train_revs = parse_files('yelp/train')
+	# test_revs = parse_files('yelp/test')
 
-	#Performs tokenization, normalization, stemming, and stopword removal on 'Content' and adds the result to a new key called 'clean' in the same data structure
-	preprocess(train_revs)
-	preprocess(test_revs)
+	# #Performs tokenization, normalization, stemming, and stopword removal on 'Content' and adds the result to a new key called 'clean' in the same data structure
+	# preprocess(train_revs)
+	# preprocess(test_revs)
 
 
-	#stores the processed reviews for convenience so I don't have to do it every time I run the program
-	write_files('trainfile', train_revs, 'testfile', test_revs)
+	# #stores the processed reviews for convenience so I don't have to do it every time I run the program
+	# write_files('trainfile', train_revs, 'testfile', test_revs)
 
-	# train_revs = parse_files('trainfile')
-	# test_revs = parse_files('testfile')
+	train_revs = parse_files('trainfile')
+	test_revs = parse_files('testfile')
 
 	#zipfs_law(train_revs, test_revs)
 
 	#zipfs_law(train_revs, test_revs, df=True)
 
 	bigrams = construct_ngrams(train_revs)
-	finalngrams = []
+
 	sortedBigrams = sorted(bigrams, key=bigrams.get, reverse=True)
-	print(sortedBigrams[:100])
+	#print(sortedBigrams[:100])
 	#sortedBigrams = sortedBigrams[101:]
-	for word in sortedBigrams:
+	finalngrams = []
+	for item in sortedBigrams:
 		if bigrams[word] >= 50:
 			finalngrams.append(word)
 
@@ -48,9 +49,22 @@ def main():
 	# 		file.write(word+"\n")
 	#for k, v in bigrams.items():
 		
-	print(len(finalngrams))
+	print("num ngrams: "+str(len(finalngrams)))
 
-#returns a dictionary with 
+	print(finalngrams[:50])
+	print("##########################")
+	print(finalngrams[-50:])
+
+	idfs = calculate_idfs(bigrams, finalngrams, len(train_revs))
+
+#takes dict of bigrams and DF, list of bigrams for idfing, and number of total docs
+def calculate_idfs(freqs, bigrams, numdocs):
+	idfs = []
+	for bigram in bigrams:
+		idf.append(1+np.log(numdocs/freqs[bigram]))
+	return idfs
+
+#returns a dictionary with the bigrams and unigrams in the reviews as keys and their document frequency as value
 def construct_ngrams(reviews, n=2):
 	freqs = {}
 	for rev in reviews:
