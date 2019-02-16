@@ -38,10 +38,10 @@ def main():
 	sortedBigrams = sorted(bigrams, key=bigrams.get, reverse=True)
 	#print(sortedBigrams[:100])
 	#sortedBigrams = sortedBigrams[101:]
-	finalngrams = []
+	vocab = []
 	for item in sortedBigrams:
 		if bigrams[word] >= 50:
-			finalngrams.append(word)
+			vocab.append(word)
 
 	#dont uncomment this, just left it in to show that I did add 
 	# with open('stopwords', 'a') as file:
@@ -49,19 +49,28 @@ def main():
 	# 		file.write(word+"\n")
 	#for k, v in bigrams.items():
 		
-	print("num ngrams: "+str(len(finalngrams)))
+	print("num ngrams: "+str(len(vocab)))
 
-	print(finalngrams[:50])
+	print(vocab[:50])
 	print("##########################")
-	print(finalngrams[-50:])
+	print(vocab[-50:])
 
-	idfs = calculate_idfs(bigrams, finalngrams, len(train_revs))
+
+	tf_idf_matrix = calculate_matrix(vocab, bigrams, train_revs)
+
+#calculates the tf-idf matrix for all the reviews.
+def calculate_matrix(vocab, freqs, reviews):
+	idfs = calculate_idfs(vocab, freqs, len(train_revs))
+
+	
+
+
 
 #takes dict of bigrams and DF, list of bigrams for idfing, and number of total docs
-def calculate_idfs(freqs, bigrams, numdocs):
+def calculate_idfs(vocab, freqs, numdocs):
 	idfs = []
-	for bigram in bigrams:
-		idf.append(1+np.log(numdocs/freqs[bigram]))
+	for term in vocab:
+		idf.append(1+np.log(numdocs/freqs[term]))
 	return idfs
 
 #returns a dictionary with the bigrams and unigrams in the reviews as keys and their document frequency as value
