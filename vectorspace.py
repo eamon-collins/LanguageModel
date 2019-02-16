@@ -39,7 +39,7 @@ def main():
 	#print(sortedBigrams[:100])
 	#sortedBigrams = sortedBigrams[101:]
 	vocab = []
-	for item in sortedBigrams:
+	for word in sortedBigrams:
 		if bigrams[word] >= 50:
 			vocab.append(word)
 
@@ -56,13 +56,40 @@ def main():
 	print(vocab[-50:])
 
 
+	print(len(train_revs))
 	tf_idf_matrix = calculate_matrix(vocab, bigrams, train_revs)
+	np.savetxt('matrix', delimiter=',')
+
+	print(tf_idf_matrix.shape)
 
 #calculates the tf-idf matrix for all the reviews.
 def calculate_matrix(vocab, freqs, reviews):
-	idfs = calculate_idfs(vocab, freqs, len(train_revs))
+	idfs = calculate_idfs(vocab, freqs, len(reviews))
 
-	
+	matrix = []
+	for rev in reviews:
+		vector = []
+		for i in range(len(vocab)):
+			term = vocab[i]
+			idf = idfs[i]
+			tf = 0
+			for j in range(len(rev['clean'])):
+				if term == rev['clean'][j]:
+					tf += 1
+			for j in range(len(rev['clean'])-1):
+				if term == rev['clean'][j] + "-" + rev['clean'][j+1]:
+					tf += 1
+			if tf == 0:
+				vector.append(0)
+			else:
+				tf = 1 + np.log(tf)
+				vector.append(tf * idf)
+
+		matrix.append(vector)
+
+	return np.matrix(matrix)
+
+
 
 
 
@@ -70,7 +97,7 @@ def calculate_matrix(vocab, freqs, reviews):
 def calculate_idfs(vocab, freqs, numdocs):
 	idfs = []
 	for term in vocab:
-		idf.append(1+np.log(numdocs/freqs[term]))
+		idfs.append(1+np.log(numdocs/freqs[term]))
 	return idfs
 
 #returns a dictionary with the bigrams and unigrams in the reviews as keys and their document frequency as value
