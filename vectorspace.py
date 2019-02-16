@@ -4,6 +4,7 @@ import nltk
 import json
 import warnings
 import numpy as np
+import scipy.sparse as sparse
 
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 
@@ -33,7 +34,8 @@ def main():
 
 	#zipfs_law(train_revs, test_revs, df=True)
 
-	bigrams = construct_ngrams(train_revs)
+	#bigrams is all ngrams found tied to document frequency, ttf is the same tied to ttf.
+	bigrams, ttf = construct_ngrams(train_revs)
 
 	sortedBigrams = sorted(bigrams, key=bigrams.get, reverse=True)
 	#print(sortedBigrams[:100])
@@ -57,8 +59,10 @@ def main():
 
 
 	print(len(train_revs))
+
+	#returns sparse matrix of 
 	tf_idf_matrix = calculate_matrix(vocab, bigrams, train_revs)
-	np.savetxt('matrix', delimiter=',')
+	sparse.save_npz('matrix', tf_idf_matrix)
 
 	print(tf_idf_matrix.shape)
 
@@ -66,28 +70,34 @@ def main():
 def calculate_matrix(vocab, freqs, reviews):
 	idfs = calculate_idfs(vocab, freqs, len(reviews))
 
-	matrix = []
-	for rev in reviews:
-		vector = []
+	matrix = np.zeros((len(reviews),len(vocab)))
+	#matrix = sparse.csr_matrix((len(reviews),len(vocab)))
+	for j in range(len(reviews)):
+		rev = reviews[j]
 		for i in range(len(vocab)):
 			term = vocab[i]
 			idf = idfs[i]
-			tf = 0
-			for j in range(len(rev['clean'])):
-				if term == rev['clean'][j]:
-					tf += 1
-			for j in range(len(rev['clean'])-1):
-				if term == rev['clean'][j] + "-" + rev['clean'][j+1]:
-					tf += 1
-			if tf == 0:
-				vector.append(0)
+			if term in rev['tf']:
+				tf = rev['tf'][term]
 			else:
-				tf = 1 + np.log(tf)
-				vector.append(tf * idf)
+				tf = 0
+			matrix[j,i] = tf * idf
+			# tf = 0
+			# for j in range(len(rev['clean'])):
+			# 	if term == rev['clean'][j]:
+			# 		tf += 1
+			# for j in range(len(rev['clean'])-1):
+			# 	if term == rev['clean'][j] + "-" + rev['clean'][j+1]:
+			# 		tf += 1
+			# if tf == 0:
+			# 	vector.append(0)
+			# else:
+			# 	tf = 1 + np.log(tf)
+			# 	vector.append(tf * idf)
 
-		matrix.append(vector)
+		#matrix.append(vector)
 
-	return np.matrix(matrix)
+	return sparse.csr_matrix(matrix, (len(reviews),len(vocab)))
 
 
 
@@ -103,6 +113,7 @@ def calculate_idfs(vocab, freqs, numdocs):
 #returns a dictionary with the bigrams and unigrams in the reviews as keys and their document frequency as value
 def construct_ngrams(reviews, n=2):
 	freqs = {}
+	ttf = {}
 	for rev in reviews:
 		minidict = {}
 		for token in rev['clean']:
@@ -118,13 +129,15 @@ def construct_ngrams(reviews, n=2):
 			else:
 				minidict[token] = 1
 
+		rev['tf'] = minidict
+
 		#collate them into the main dictionary
 		for key in minidict:
 			if key in freqs:
 				freqs[key] += 1
 			else:
 				freqs[key] = 1
-	return freqs
+	return freqs, ttf
 
 
 
