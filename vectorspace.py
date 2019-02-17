@@ -35,7 +35,7 @@ def main():
 	#zipfs_law(train_revs, test_revs, df=True)
 
 	#bigrams is all ngrams found tied to document frequency, ttf is the same tied to ttf.
-	bigrams, ttf = construct_ngrams(train_revs)
+	bigrams = construct_ngrams(train_revs)
 
 	sortedBigrams = sorted(bigrams, key=bigrams.get, reverse=True)
 	#print(sortedBigrams[:100])
@@ -45,7 +45,7 @@ def main():
 		if bigrams[word] >= 50:
 			vocab.append(word)
 
-	#dont uncomment this, just left it in to show that I did add 
+	#dont uncomment this, just left it in to show that I did add the top 100 bigrams to the stopwords. each run after this incorporates them.
 	# with open('stopwords', 'a') as file:
 	# 	for word in sortedBigrams[:100]:
 	# 		file.write(word+"\n")
@@ -57,19 +57,26 @@ def main():
 	print("##########################")
 	print(vocab[-50:])
 
+	#gets the idfs from the train set, we will use this for all
+	idfs = calculate_idfs(vocab, bigrams, len(train_revs))
 
-	print(len(train_revs))
+	# #gets term frequency for the test set, discards df cause we want to use train sets stats
+	construct_ngrams(test_revs)
 
-	#returns sparse matrix of 
-	tf_idf_matrix = calculate_matrix(vocab, bigrams, train_revs)
-	sparse.save_npz('matrix', tf_idf_matrix)
+	# #returns sparse matrix of tf-idf scores (unordered colmn indices, use set_order() to output in )
+	# tf_idf_matrix = calculate_matrix(vocab, idfs, train_revs)
+	tf_idf_matrix = calculate_matrix(vocab, idfs, test_revs)
+	#saves the matrix in a sparse format for storage size and ease and convenience (calculate_matrix is quite slow)
+	sparse.save_npz('test_matrix', tf_idf_matrix)
 
-	print(tf_idf_matrix.shape)
+	#tf_idf_matrix = sparse.load_npz('test_matrix.npz')
+
+	print("shape of tf-idf matrix: "+ str(tf_idf_matrix.shape))
+
+
 
 #calculates the tf-idf matrix for all the reviews.
-def calculate_matrix(vocab, freqs, reviews):
-	idfs = calculate_idfs(vocab, freqs, len(reviews))
-
+def calculate_matrix(vocab, idfs, reviews):
 	matrix = np.zeros((len(reviews),len(vocab)))
 	#matrix = sparse.csr_matrix((len(reviews),len(vocab)))
 	for j in range(len(reviews)):
@@ -82,20 +89,6 @@ def calculate_matrix(vocab, freqs, reviews):
 			else:
 				tf = 0
 			matrix[j,i] = tf * idf
-			# tf = 0
-			# for j in range(len(rev['clean'])):
-			# 	if term == rev['clean'][j]:
-			# 		tf += 1
-			# for j in range(len(rev['clean'])-1):
-			# 	if term == rev['clean'][j] + "-" + rev['clean'][j+1]:
-			# 		tf += 1
-			# if tf == 0:
-			# 	vector.append(0)
-			# else:
-			# 	tf = 1 + np.log(tf)
-			# 	vector.append(tf * idf)
-
-		#matrix.append(vector)
 
 	return sparse.csr_matrix(matrix, (len(reviews),len(vocab)))
 
@@ -107,13 +100,15 @@ def calculate_matrix(vocab, freqs, reviews):
 def calculate_idfs(vocab, freqs, numdocs):
 	idfs = []
 	for term in vocab:
-		idfs.append(1+np.log(numdocs/freqs[term]))
+		if term in freqs:
+			idfs.append(1+np.log(numdocs/freqs[term]))
+		else:
+			idfs.append(0)
 	return idfs
 
 #returns a dictionary with the bigrams and unigrams in the reviews as keys and their document frequency as value
 def construct_ngrams(reviews, n=2):
 	freqs = {}
-	ttf = {}
 	for rev in reviews:
 		minidict = {}
 		for token in rev['clean']:
@@ -137,7 +132,7 @@ def construct_ngrams(reviews, n=2):
 				freqs[key] += 1
 			else:
 				freqs[key] = 1
-	return freqs, ttf
+	return freqs
 
 
 
